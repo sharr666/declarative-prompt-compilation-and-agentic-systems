@@ -1,4 +1,5 @@
-Agenti# Declarative Prompt Compilation and Agentic Systemsc Systems
+# Decl# Declarative Prompt Compilation and Agentic Systems
+arative Prompt Compilation and Agentic SystemsAgenti# Declarative Prompt Compilation and Agentic Systemsc Systems
 
 **Author:** Mehrdad Poorhassan - Dr. Metal
 **ORCID:** 0009-0004-9269-3912
