@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software or architectural survey, please cite it as below."
+type: software
+title: "Declarative Prompt Compilation, Discrete APO & 5-Tier Cognitive Memory"
+version: 1.0.0
+doi: 10.5281/zenodo.23762055
+date-released: 2026-10-29
+license: Apache-2.0
+authors:
+  - family-names: "Poorhassan"
+    given-names: "Mehrdad"
+    alias: "Dr. Metal"
+    orcid: "0009-0004-9269-3912"
