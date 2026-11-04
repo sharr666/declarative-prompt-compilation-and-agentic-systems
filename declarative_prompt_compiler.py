@@ -263,5 +263,4 @@ if __name__ == "__main__":
         "compilation_benchmark_1000_iters": bench,
         "leak_free_apo": apo_out,
         "five_tier_memory_retrieval": mem.retrieve_context("What is the max_tokens policy for model?"),
-    }, indent=2))
-    }, indent=2))
+    }, indent=2))   
