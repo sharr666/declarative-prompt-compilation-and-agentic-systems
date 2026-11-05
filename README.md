@@ -22,7 +22,7 @@ The optimizer verifies exact canonical-record disjointness. This does not detect
 
 ## Bounded five-tier memory prototype
 
-Working, episodic, archival and knowledge-graph stores each have explicit capacity limits. Tier 5 governed facts are surfaced in the effective context. A narrow conflict filter suppresses explicit numeric key/value conflicts (for example, `max_tokens=4096` against a policy specifying `max_tokens=1024`). This is not general contradiction reasoning, cryptographic certification, durable storage or multi-user isolation.
+Working, episodic, archival, knowledge-graph and governed-policy stores each have explicit capacity limits; governed policies use FIFO eviction at the configured cap. Tier 5 governed facts are surfaced in the effective context. A narrow conflict filter suppresses explicit numeric key/value conflicts (for example, `max_tokens=4096` against a policy specifying `max_tokens=1024`). This is not general contradiction reasoning, cryptographic certification, durable storage or multi-user isolation.
 
 ## Reproduce
 
