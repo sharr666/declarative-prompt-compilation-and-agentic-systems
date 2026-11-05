@@ -93,6 +93,24 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(memory.retrieve_context("policy_a")["tier5_governed_overrides"], {})
         self.assertEqual(memory.retrieve_context("policy_c")["memory_limits"]["governed_policy"], 2)
 
+    def test_conflicting_later_numeric_assignment_is_suppressed(self):
+        memory = FiveTierCognitiveMemory()
+        memory.insert_observation(
+            "Current max_tokens=1024; legacy max_tokens=4096"
+        )
+        memory.register_governed_fact(
+            "max_tokens", "Strict policy cap: max_tokens=1024"
+        )
+        result = memory.retrieve_context("What is max_tokens?")
+        self.assertIn(
+            "Current max_tokens=1024; legacy max_tokens=4096",
+            result["suppressed_explicit_conflicts"],
+        )
+        self.assertNotIn(
+            "Current max_tokens=1024; legacy max_tokens=4096",
+            result["effective_context"],
+        )
+
     def test_invalid_governed_policy_capacity_is_rejected(self):
         with self.assertRaises(ValueError):
             FiveTierCognitiveMemory(governed_policy_capacity=0)
