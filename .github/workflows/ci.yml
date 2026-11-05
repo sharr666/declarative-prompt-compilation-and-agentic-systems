@@ -1,20 +1,21 @@
-name: Python Syntax & Compiler CI
+name: Declarative Compiler Tests
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main", "maintenance/**"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Verify Python AST & Bytecode Compilation
+      - name: Syntax, unit tests and execution smoke test
         run: |
-          python -m py_compile *.py
+          python -m py_compile declarative_prompt_compiler.py
+          python -m unittest discover -s tests -v
+          python declarative_prompt_compiler.py
