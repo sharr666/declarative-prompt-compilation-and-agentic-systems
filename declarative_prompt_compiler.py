@@ -326,9 +326,13 @@ class FiveTierCognitiveMemory:
         for item in candidate_items:
             conflict = False
             for key, policy in policies.items():
-                match = re.search(rf"\b{re.escape(key)}\s*[:=]\s*(\d+)", item, re.I)
-                policy_match = re.search(rf"\b{re.escape(key)}\s*[:=]?\s*(\d+)", policy, re.I)
-                if match and policy_match and match.group(1) != policy_match.group(1):
+                item_values = re.findall(rf"\b{re.escape(key)}\s*[:=]\s*(\d+)", item, re.I)
+                policy_values = set(re.findall(rf"\b{re.escape(key)}\s*[:=]?\s*(\d+)", policy, re.I))
+                # A note is suppressed if any explicit numeric assignment conflicts.
+                # Ambiguous policies with multiple distinct values cannot authorize a note.
+                if item_values and policy_values and (
+                    len(policy_values) > 1 or any(value not in policy_values for value in item_values)
+                ):
                     conflict = True
                     break
             if conflict:
