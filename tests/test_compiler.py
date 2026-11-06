@@ -36,6 +36,15 @@ class CompilerTests(unittest.TestCase):
         with self.assertRaises(PromptCompilationError):
             self.compiler.validate_semantics_and_types(ast)
 
+    def test_non_string_payload_key_is_rejected_cleanly(self):
+        ast = self.compiler.parse_to_ast(signature())
+        with self.assertRaises(PromptCompilationError):
+            self.compiler.validate_semantics_and_types(ast, {1: "invalid", "count": 1})
+
+    def test_invalid_ast_object_is_rejected_cleanly(self):
+        with self.assertRaises(PromptCompilationError):
+            self.compiler.validate_semantics_and_types(object())
+
     def test_duplicate_output_field_is_rejected(self):
         sig = signature(outputs=[FieldSpec("ok", "bool", ""), FieldSpec("ok", "bool", "")])
         ast = self.compiler.parse_to_ast(sig)
