@@ -24,6 +24,27 @@ class CompilerTests(unittest.TestCase):
         with self.assertRaises(PromptCompilationError):
             self.compiler.validate_semantics_and_types(ast, {"count": True})
 
+    def test_non_string_field_name_is_rejected_cleanly(self):
+        sig = signature(inputs=[FieldSpec(123, "int", "Count")])
+        ast = self.compiler.parse_to_ast(sig)
+        with self.assertRaises(PromptCompilationError):
+            self.compiler.validate_semantics_and_types(ast)
+
+    def test_non_string_dtype_is_rejected_cleanly(self):
+        sig = signature(inputs=[FieldSpec("count", [], "Count")])
+        ast = self.compiler.parse_to_ast(sig)
+        with self.assertRaises(PromptCompilationError):
+            self.compiler.validate_semantics_and_types(ast)
+
+    def test_non_string_payload_key_is_rejected_cleanly(self):
+        ast = self.compiler.parse_to_ast(signature())
+        with self.assertRaises(PromptCompilationError):
+            self.compiler.validate_semantics_and_types(ast, {1: "invalid", "count": 1})
+
+    def test_invalid_ast_object_is_rejected_cleanly(self):
+        with self.assertRaises(PromptCompilationError):
+            self.compiler.validate_semantics_and_types(object())
+
     def test_duplicate_output_field_is_rejected(self):
         sig = signature(outputs=[FieldSpec("ok", "bool", ""), FieldSpec("ok", "bool", "")])
         ast = self.compiler.parse_to_ast(sig)
@@ -71,6 +92,37 @@ class MemoryTests(unittest.TestCase):
         result = memory.retrieve_context("What is max_tokens?")
         self.assertIn("Draft has max_tokens=4096", result["suppressed_explicit_conflicts"])
         self.assertTrue(any("max_tokens=1024" in item for item in result["effective_context"]))
+
+    def test_governed_policy_store_is_bounded_with_fifo_eviction(self):
+        memory = FiveTierCognitiveMemory(governed_policy_capacity=2)
+        memory.register_governed_fact("policy_a", "value_a")
+        memory.register_governed_fact("policy_b", "value_b")
+        memory.register_governed_fact("policy_c", "value_c")
+        self.assertEqual(list(memory.governed_policies), ["policy_b", "policy_c"])
+        self.assertEqual(memory.retrieve_context("policy_a")["tier5_governed_overrides"], {})
+        self.assertEqual(memory.retrieve_context("policy_c")["memory_limits"]["governed_policy"], 2)
+
+    def test_conflicting_later_numeric_assignment_is_suppressed(self):
+        memory = FiveTierCognitiveMemory()
+        memory.insert_observation(
+            "Current max_tokens=1024; legacy max_tokens=4096"
+        )
+        memory.register_governed_fact(
+            "max_tokens", "Strict policy cap: max_tokens=1024"
+        )
+        result = memory.retrieve_context("What is max_tokens?")
+        self.assertIn(
+            "Current max_tokens=1024; legacy max_tokens=4096",
+            result["suppressed_explicit_conflicts"],
+        )
+        self.assertNotIn(
+            "Current max_tokens=1024; legacy max_tokens=4096",
+            result["effective_context"],
+        )
+
+    def test_invalid_governed_policy_capacity_is_rejected(self):
+        with self.assertRaises(ValueError):
+            FiveTierCognitiveMemory(governed_policy_capacity=0)
 
 
 if __name__ == "__main__":

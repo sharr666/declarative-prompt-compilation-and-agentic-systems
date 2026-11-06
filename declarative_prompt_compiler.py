@@ -87,6 +87,8 @@ class DeclarativePromptCompiler:
     def parse_to_ast(
         self, sig: DeclarativeSignature, demos: Optional[List[Dict[str, Any]]] = None
     ) -> SignatureAST:
+        if not isinstance(sig, DeclarativeSignature):
+            raise PromptCompilationError("sig must be a DeclarativeSignature")
         if sig.framework not in self.SUPPORTED_FRAMEWORKS:
             raise PromptCompilationError(f"Unsupported framing profile: {sig.framework}")
         if not all(isinstance(value, str) and value.strip() for value in (sig.task_name, sig.role, sig.objective)):
@@ -111,17 +113,19 @@ class DeclarativePromptCompiler:
     def validate_semantics_and_types(
         self, ast: SignatureAST, sample_payload: Optional[Dict[str, Any]] = None
     ) -> None:
+        if not isinstance(ast, SignatureAST):
+            raise PromptCompilationError("ast must be a SignatureAST")
         all_fields = list(ast.input_nodes) + list(ast.output_nodes)
         seen = set()
         for field in all_fields:
             if not isinstance(field, FieldSpec):
                 raise PromptCompilationError("Every schema member must be a FieldSpec")
-            if not self.FIELD_NAME_RE.fullmatch(field.name):
+            if not isinstance(field.name, str) or not self.FIELD_NAME_RE.fullmatch(field.name):
                 raise PromptCompilationError(f"Invalid field identifier: {field.name!r}")
             if field.name in seen:
                 raise PromptCompilationError(f"Duplicate field identifier: {field.name}")
             seen.add(field.name)
-            if field.dtype not in self.VALID_DTYPES:
+            if not isinstance(field.dtype, str) or field.dtype not in self.VALID_DTYPES:
                 raise PromptCompilationError(f"Invalid dtype {field.dtype!r} for {field.name}")
             if not isinstance(field.description, str):
                 raise PromptCompilationError(f"Description for {field.name} must be a string")
@@ -136,6 +140,8 @@ class DeclarativePromptCompiler:
             payloads.append(sample_payload)
 
         for index, payload in enumerate(payloads):
+            if not isinstance(payload, dict) or any(not isinstance(name, str) for name in payload):
+                raise PromptCompilationError(f"Payload #{index} must be a dictionary with string field names")
             extra = set(payload) - set(known)
             if extra:
                 raise PromptCompilationError(f"Unknown fields in payload #{index}: {sorted(extra)}")
@@ -244,14 +250,19 @@ class FiveTierCognitiveMemory:
         episodic_capacity: int = 1024,
         archival_capacity: int = 4096,
         knowledge_graph_capacity: int = 2048,
+        governed_policy_capacity: int = 1024,
     ) -> None:
-        capacities = (working_capacity, episodic_capacity, archival_capacity, knowledge_graph_capacity)
+        capacities = (
+            working_capacity, episodic_capacity, archival_capacity,
+            knowledge_graph_capacity, governed_policy_capacity,
+        )
         if any(type(value) is not int or value < 1 for value in capacities):
             raise ValueError("All memory capacities must be positive integers")
         self.working_capacity = working_capacity
         self.episodic_capacity = episodic_capacity
         self.archival_capacity = archival_capacity
         self.knowledge_graph_capacity = knowledge_graph_capacity
+        self.governed_policy_capacity = governed_policy_capacity
         self.working_memory: List[str] = []
         self.episodic_buffer: List[Dict[str, Any]] = []
         self.archival_storage: List[str] = []
@@ -282,8 +293,19 @@ class FiveTierCognitiveMemory:
     def register_governed_fact(self, key: str, certified_value: str) -> str:
         if not isinstance(key, str) or not key.strip() or not isinstance(certified_value, str) or not certified_value.strip():
             raise ValueError("Policy key and value must be non-empty strings")
-        digest = hashlib.sha256(f"{key.strip()}:{certified_value.strip()}".encode("utf-8")).hexdigest()
-        self.governed_policies[key.strip().lower()] = f"{certified_value.strip()} [sha256:{digest}]"
+        normalized_key = key.strip().lower()
+        normalized_value = certified_value.strip()
+        canonical = json.dumps(
+            [normalized_key, normalized_value],
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        if normalized_key not in self.governed_policies and len(self.governed_policies) >= self.governed_policy_capacity:
+            oldest_key = next(iter(self.governed_policies))
+            del self.governed_policies[oldest_key]
+        self.governed_policies[normalized_key] = f"{normalized_value} [sha256:{digest}]"
         return digest
 
     def retrieve_context(self, query: str) -> Dict[str, Any]:
@@ -308,9 +330,13 @@ class FiveTierCognitiveMemory:
         for item in candidate_items:
             conflict = False
             for key, policy in policies.items():
-                match = re.search(rf"\b{re.escape(key)}\s*[:=]\s*(\d+)", item, re.I)
-                policy_match = re.search(rf"\b{re.escape(key)}\s*[:=]?\s*(\d+)", policy, re.I)
-                if match and policy_match and match.group(1) != policy_match.group(1):
+                item_values = re.findall(rf"\b{re.escape(key)}\s*[:=]\s*(\d+)", item, re.I)
+                policy_values = set(re.findall(rf"\b{re.escape(key)}\s*[:=]?\s*(\d+)", policy, re.I))
+                # A note is suppressed if any explicit numeric assignment conflicts.
+                # Ambiguous policies with multiple distinct values cannot authorize a note.
+                if item_values and policy_values and (
+                    len(policy_values) > 1 or any(value not in policy_values for value in item_values)
+                ):
                     conflict = True
                     break
             if conflict:
@@ -333,6 +359,7 @@ class FiveTierCognitiveMemory:
                 "episodic": self.episodic_capacity,
                 "archival": self.archival_capacity,
                 "knowledge_graph": self.knowledge_graph_capacity,
+                "governed_policy": self.governed_policy_capacity,
             },
         }
 
