@@ -113,6 +113,8 @@ class DeclarativePromptCompiler:
     def validate_semantics_and_types(
         self, ast: SignatureAST, sample_payload: Optional[Dict[str, Any]] = None
     ) -> None:
+        if not isinstance(ast, SignatureAST):
+            raise PromptCompilationError("ast must be a SignatureAST")
         all_fields = list(ast.input_nodes) + list(ast.output_nodes)
         seen = set()
         for field in all_fields:
@@ -138,6 +140,8 @@ class DeclarativePromptCompiler:
             payloads.append(sample_payload)
 
         for index, payload in enumerate(payloads):
+            if not isinstance(payload, dict) or any(not isinstance(name, str) for name in payload):
+                raise PromptCompilationError(f"Payload #{index} must be a dictionary with string field names")
             extra = set(payload) - set(known)
             if extra:
                 raise PromptCompilationError(f"Unknown fields in payload #{index}: {sorted(extra)}")
