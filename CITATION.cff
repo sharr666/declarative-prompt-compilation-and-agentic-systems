@@ -3,8 +3,6 @@ message: "If you use this software or architectural survey, please cite it as be
 type: software
 title: "Declarative Prompt Compilation, Discrete APO & 5-Tier Cognitive Memory"
 version: 1.0.0
-doi: 10.5281/zenodo.23762055
-date-released: 2026-10-29
 license: Apache-2.0
 authors:
   - family-names: "Poorhassan"
