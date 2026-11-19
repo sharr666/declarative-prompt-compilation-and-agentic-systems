@@ -1,7 +1,7 @@
 # Declarative Prompt Compilation, Type Validation & Bounded Memory
 **Author:** Mehrdad Poorhassan (`Dr. Metal`)
 **ORCID iD:** `0009-0004-9269-3912`
-**CERN Zenodo DOI:** `10.5281/zenodo.23762055`
+**Zenodo deposit:** DOI `10.5281/zenodo.23762055` is listed in project materials, but a published record has not been independently confirmed; it is omitted from `CITATION.cff` until publication is verified.
 **Open Science Framework (OSF):** [Archival Project (osf.io/y8j9g)](https://osf.io/y8j9g/) (`DOI: 10.17605/OSF.IO/Y8J9G`) · [Researcher Profile (osf.io/23uab)](https://osf.io/23uab/)
 **arXiv Verified Author:** `Dr.Metal` (`cs.AI`, `cs.CL`, `cs.CR`)
 **Scientific Memberships:** American Chemical Society (`ACS: dr.metal`) · CODATA Data Science Journal (`sharr666`)
